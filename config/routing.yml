@@ -1,0 +1,6 @@
+lotusjeff_sitemap_sitemapindex:
+    pattern: lotusjeff-sitemap/sitemap.xml
+    defaults: { _controller: lotusjeff.sitemap.sitemap:index }
+lotusjeff_sitemap_sitemap:
+    pattern: /lotusjeff-sitemap/sitemap-{id}.xml
+    defaults: { _controller: lotusjeff.sitemap.sitemap:sitemap }

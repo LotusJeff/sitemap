@@ -1,0 +1,61 @@
+<!-- INCLUDE overall_header.html -->
+
+<a id="maincontent"></a>
+
+<h1>{L_LOTUSJEFF_SITEMAP_TITLE}</h1>
+
+<!-- IF S_ERROR -->
+	<div class="errorbox">
+		<h3>{L_WARNING}</h3>
+		<p>{ERROR_MSG}</p>
+	</div>
+<!-- ENDIF -->
+
+<form id="acp_board" method="post" action="{U_ACTION}">
+	<fieldset>
+		<legend>{L_LOTUSJEFF_SITEMAP_PRIORITY}</legend>
+		<dl>
+			<dt><label for="lotusjeff_sitemap_sticky_priority">{L_LOTUSJEFF_SITEMAP_STICKY_PRIORITY}{L_COLON}</label><br /><span>{L_LOTUSJEFF_SITEMAP_STICKY_PRIORITY_EXPLAIN}</span></dt>
+			<dd><input type="num" name="lotusjeff_sitemap_sticky_priority" size="5" value="{LOTUSJEFF_SITEMAP_STICKY_PRIORITY}" /></dd>
+		</dl>
+		<dl>
+			<dt><label for="lotusjeff_sitemap_announce_priority">{L_LOTUSJEFF_SITEMAP_ANNOUNCE_PRIORITY}{L_COLON}</label><br /><span>{L_LOTUSJEFF_SITEMAP_ANNOUNCE_PRIORITY_EXPLAIN}</span></dt>
+			<dd><input type="num" name="lotusjeff_sitemap_announce_priority" size="5" value="{LOTUSJEFF_SITEMAP_ANNOUNCE_PRIORITY}" /></dd>
+		</dl>
+		<dl>
+			<dt><label for="lotusjeff_sitemap_global_priority">{L_LOTUSJEFF_SITEMAP_GLOBAL_PRIORITY}{L_COLON}</label><br /><span>{L_LOTUSJEFF_SITEMAP_GLOBAL_PRIORITY_EXPLAIN}</span></dt>
+			<dd><input type="num" name="lotusjeff_sitemap_global_priority" size="5" value="{LOTUSJEFF_SITEMAP_GLOBAL_PRIORITY}" /></dd>
+		</dl>
+	</fieldset>
+	<fieldset>
+		<legend>{L_LOTUSJEFF_SITEMAP_FORUM_EXCLUDE}</legend>
+		<dl>
+			<dt><label for="lotusjeff_sitemap_forum_exclude">{L_LOTUSJEFF_SITEMAP_FORUM_EXCLUDE}{L_COLON}</label><br /><span>{L_LOTUSJEFF_SITEMAP_FORUM_EXCLUDE_EXPLAIN}</span></dt>
+			<dd><select name="lotusjeff_sitemap_forum_exclude[]" id="lotusjeff_sitemap_forum_exclude" size="10" multiple="multiple">
+				<!-- BEGIN lotusjeff_sitemap_forum_exclude_options -->
+					<option value="{lotusjeff_sitemap_forum_exclude_options.VALUE}"<!-- IF lotusjeff_sitemap_forum_exclude_options.S_DISABLED --> disabled="disabled" class="disabled-option"<!-- ENDIF --><!-- IF lotusjeff_sitemap_forum_exclude_options.S_SELECTED --> selected="selected"<!-- ENDIF -->>{lotusjeff_sitemap_forum_exclude_options.LABEL}</option>
+				<!-- END lotusjeff_sitemap_forum_exclude_options -->
+			</select></dd>
+		</dl>
+		<dl>
+			<dt><label for="lotusjeff_sitemap_forum_threshold">{L_LOTUSJEFF_SITEMAP_FORUM_THRESHOLD}{L_COLON}</label><br /><span>{L_LOTUSJEFF_SITEMAP_FORUM_THRESHOLD_EXPLAIN}</span></dt>
+			<dd><input type="num" name="lotusjeff_sitemap_forum_threshold" size="5" value="{LOTUSJEFF_SITEMAP_FORUM_THRESHOLD}" /></dd>
+		</dl>
+	</fieldset>
+	<fieldset>
+		<legend>{L_LOTUSJEFF_SITEMAP_LINKS}</legend>
+		<dl>
+			<dt><label for="lotusjeff_sitemap_link">{L_LOTUSJEFF_SITEMAP_LINK}{L_COLON}</label><br /><span>{L_LOTUSJEFF_SITEMAP_LINK_EXPLAIN}</span></dt>
+			<dd>
+				<input type="radio" class="radio" name="lotusjeff_sitemap_link" value="1" <!-- IF LOTUSJEFF_SITEMAP_LINK -->checked="checked"<!-- ENDIF -->/> {L_YES} &nbsp;
+				<input type="radio" class="radio" name="lotusjeff_sitemap_link" value="0" <!-- IF not LOTUSJEFF_SITEMAP_LINK -->checked="checked"<!-- ENDIF -->/> {L_NO}
+			</dd>
+		</dl>
+	</fieldset>
+	<p class="submit-buttons">
+		<input class="button1" type="submit" id="submit" name="submit" value="{L_SUBMIT}" />&nbsp;
+		<input class="button2" type="reset" id="reset" name="reset" value="{L_RESET}" />
+	</p>
+{S_FORM_TOKEN}
+</form>
+<!-- INCLUDE overall_footer.html -->
