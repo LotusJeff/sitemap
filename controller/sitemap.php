@@ -152,6 +152,7 @@ class sitemap
 			'time'	=> $row['forum_last_post_time'],
 			'prio'	=> number_format($forum_prio,1),
 			'freq'	=> $this->get_freq($row['forum_last_post_time']),
+			'image'	=> '',
 		);
 		/**
 		 * Url data for multi-page forums
@@ -167,6 +168,7 @@ class sitemap
 					'time'	=> $row['forum_last_post_time'],
 					'prio'	=> number_format(($forum_prio*0.95),1),
 					'freq'	=> $this->get_freq($row['forum_last_post_time']),
+					'image'	=> '',
 				);
 			}
 		}
@@ -175,7 +177,7 @@ class sitemap
 		 * Get all the forum topics.  topics must be:
 		 *   - Topic has at least one approved post
 		 */
-		$sql = 'SELECT topic_id, topic_last_post_time, topic_status, topic_posts_approved, topic_type
+		$sql = 'SELECT topic_id, topic_last_post_time, topic_status, topic_posts_approved, topic_type, topic_attachment
 			FROM ' . TOPICS_TABLE . '
 			WHERE forum_id = ' . (int) $id . ' and topic_posts_approved > 0';
 		$result = $this->db->sql_query($sql);
@@ -183,9 +185,80 @@ class sitemap
 		while ($topic_row = $this->db->sql_fetchrow($result))
 		{
 			/**
-			 * Set the priority of the topic
+			 * Determines if topic is multi-page
 			 */
 			$pages = ceil($topic_row['topic_posts_approved'] / $this->config['posts_per_page']);
+
+			/**
+			 * If topic has attachments, get image information. Images must be:
+			 * - within the topic
+			 * - an image mime type
+			 * - not an orphan
+			 */
+			if (($topic_row['topic_attachment']) && ($this->config['lotusjeff_sitemap_images']))
+			{
+				$sql = 'SELECT attach_id, attach_comment, post_msg_id
+					FROM ' . ATTACHMENTS_TABLE . '
+					WHERE topic_id = ' . $topic_row['topic_id'] . ' and is_orphan = 0 and mimetype like "%image%"';
+				$image_result = $this->db->sql_query($sql);
+
+				/**
+				 * If the topic is multipage the images must be assigned to the correct page
+				 */
+				while ($image_row = $this->db->sql_fetchrow($image_result))
+				{
+					if ( $pages > 1 )
+					{
+						/**
+						 * Get all posts ids:
+						 * - within the topic
+						 * - post is visible
+						 */						
+						$sql = 'SELECT post_id
+							FROM ' . POSTS_TABLE . '
+							WHERE topic_id = ' . $topic_row['topic_id'] . ' and post_visibility = 1';
+						$post_result = $this->db->sql_query($sql);
+
+						while ($post_row = $this->db->sql_fetchrow($post_result))
+						{
+							$post_data[] = $post_row['post_id'];
+						}
+						$post_id_by_page = array_chunk($post_data, $this->config['posts_per_page']);
+
+						/**
+						 * Determine what image goes with which page
+						 */	
+						$page_count = 1;
+						foreach($post_id_by_page as $post_page_data) 
+						{
+							if (in_array($image_row['post_msg_id'], $post_page_data))
+							{
+								$topic_image_data[$topic_row['topic_id']][$page_count][] = array(
+									'attach_url'	=> $this->board_url .  '/download/file.' . $this->php_ext . '?id=' . $image_row['attach_id'] . '&amp;mode=view',
+									'caption'	=> $image_row['attach_comment'],
+								);
+							}
+							$page_count++;
+						}
+
+					}
+					else
+					{
+						$topic_image_data[$topic_row['topic_id']][$pages][] = array(
+							'attach_url'	=> $this->board_url .  '/download/file.' . $this->php_ext . '?id=' . $image_row['attach_id'] . '&amp;mode=view',
+							'caption'	=> $image_row['attach_comment'],
+						);						
+					}
+				}
+			}
+			else
+			{
+				$topic_image_data = array();
+			}
+
+			/**
+			 * Set the priority of the topic
+			 */
 			switch ($topic_row['topic_type'])
 			{
 				case POST_STICKY:
@@ -211,6 +284,7 @@ class sitemap
 					'time'	=> $topic_row['topic_last_post_time'],
 					'prio'	=> number_format($topic_priority,1),
 					'freq'	=> $this->get_freq($topic_row['topic_last_post_time']),
+					'image'	=> ($this->config['lotusjeff_sitemap_images']) ? $this->image_exist($topic_row['topic_id'], $topic_image_data) : '',
 				);
 
 				/**
@@ -219,7 +293,7 @@ class sitemap
 				if ( $pages > 1 )
 				{
 					$start = 0;
-					for ($i = 1; $i < $pages; $i++)
+					for ($i = 2; $i < $pages+1; $i++)
 					{
 						$start = $start + $this->config['posts_per_page'];
 						$url_data[] = array(
@@ -227,12 +301,14 @@ class sitemap
 							'time'	=> $topic_row['topic_last_post_time'],
 							'prio'	=> number_format(($topic_priority*0.95),1),
 							'freq'	=> $this->get_freq($topic_row['topic_last_post_time']),
+							'image'	=> ($this->config['lotusjeff_sitemap_images']) ? $this->image_exist($topic_row['topic_id'], $topic_image_data, $pages, $i) : '',
 						);
 					}
 				}
 			}
 		}
 
+//print_r($url_data);
 		/**
 		 * If there are no available data, we need to send an error message of no data configured.
 		 */
@@ -274,7 +350,7 @@ class sitemap
 		}
 		else
 		{
-			$xml .= '<urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+			$xml .= '<urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">' . "\n";
 			foreach ($url_data as $data)
 			{
 				$xml .= '	<url>' . "\n";
@@ -282,7 +358,21 @@ class sitemap
 				$xml .= ($data['time'] <> 0) ? '		<lastmod>' . gmdate('Y-m-d\TH:i:s+00:00', (int) $data['time']) . '</lastmod>' .  "\n" : '';
 				$xml .= '		<changefreq>' . $data['freq'] . '</changefreq>' .  "\n";
 				$xml .= '		<priority>' . $data['prio'] . '</priority>' .  "\n";
-				$xml .= '	</url>' . "\n";
+
+				/**
+				 * Add image data if turned on
+				 */				
+				if (($this->config['lotusjeff_sitemap_images']) && (is_array($data['image'])))
+				{
+					foreach($data['image'] as $xml_image_data)
+					{
+						$xml .= '		<image:image>' .  "\n";
+						$xml .= '			<image:loc>' . $xml_image_data['attach_url'] . '</image:loc>' .  "\n";
+						$xml .= '			<image:caption>' . $xml_image_data['caption'] . '</image:caption>' .  "\n";
+						$xml .= '		</image:image>' .  "\n";
+					}
+				}
+ 				$xml .= '	</url>' . "\n";
 			}
 		}
 		$xml .= '</' . $type . '>';
@@ -322,5 +412,27 @@ class sitemap
 	private function get_prio($lastmodtime, $pages = 1)
 	{
 		return time() / (time() + (((time() - $lastmodtime)* 42) / $pages));
+	}
+
+	/**
+	* get_priority() computes the priority, bases on last mod time and page number
+	* Freshest items with most pages gets the highest priority
+	* 42 is the answer to the most important question in the universe ;-) From USU and phpBBSEO 3.0.x mod
+	 * @param string	$lastmodtime
+	 * @param string	number of pages within listing
+	 * @return priority value
+	 * @access private
+	*/
+	private function image_exist($topic_row, $image_data, $pages = 1, $i = 1)
+	{
+		if ($pages == 1)
+		{
+			return (isset($image_data[$topic_row][$pages])) ? $image_data[$topic_row][$pages] : '';
+		}
+		else
+		{
+			return (isset($image_data[$topic_row][$i])) ? $image_data[$topic_row][$i] : '';
+		}
+
 	}
 }

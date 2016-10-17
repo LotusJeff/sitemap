@@ -16,6 +16,16 @@
 
 <form id="acp_board" method="post" action="{U_ACTION}">
 	<fieldset>
+		<legend>{L_LOTUSJEFF_SITEMAP_IMAGES}</legend>
+		<dl>
+			<dt><label for="lotusjeff_sitemap_images">{L_LOTUSJEFF_SITEMAP_IMAGES}{L_COLON}</label><br /><span>{L_LOTUSJEFF_SITEMAP_IMAGES_EXPLAIN}</span></dt>
+			<dd>
+				<input type="radio" class="radio" name="lotusjeff_sitemap_images" value="1" <!-- IF LOTUSJEFF_SITEMAP_IMAGES -->checked="checked"<!-- ENDIF -->/> {L_YES} &nbsp;
+				<input type="radio" class="radio" name="lotusjeff_sitemap_images" value="0" <!-- IF not LOTUSJEFF_SITEMAP_IMAGES -->checked="checked"<!-- ENDIF -->/> {L_NO}
+			</dd>
+		</dl>
+	</fieldset>
+	<fieldset>
 		<legend>{L_LOTUSJEFF_SITEMAP_PRIORITY}</legend>
 		<dl>
 			<dt><label for="lotusjeff_sitemap_sticky_priority">{L_LOTUSJEFF_SITEMAP_STICKY_PRIORITY}{L_COLON}</label><br /><span>{L_LOTUSJEFF_SITEMAP_STICKY_PRIORITY_EXPLAIN}</span></dt>

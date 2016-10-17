@@ -122,6 +122,7 @@ class sitemap_module
 				$config->set('lotusjeff_sitemap_global_priority', $lotusjeff_sitemap_global_priority);
 				$config->set('lotusjeff_sitemap_forum_threshold', $lotusjeff_sitemap_forum_threshold);
 				$config->set('lotusjeff_sitemap_link', $request->variable('lotusjeff_sitemap_link', 1));
+				$config->set('lotusjeff_sitemap_images', $request->variable('lotusjeff_sitemap_images', 1));
 				$config->set('lotusjeff_sitemap_forum_exclude', serialize($request->variable('lotusjeff_sitemap_forum_exclude', array(0))));
 
 				if (empty($msg))
@@ -153,6 +154,7 @@ class sitemap_module
 			'LOTUSJEFF_SITEMAP_GLOBAL_PRIORITY'		=> $config['lotusjeff_sitemap_global_priority'],
 			'LOTUSJEFF_SITEMAP_FORUM_THRESHOLD'		=> $config['lotusjeff_sitemap_forum_threshold'],
 			'LOTUSJEFF_SITEMAP_LINK'				=> $config['lotusjeff_sitemap_link'],
+			'LOTUSJEFF_SITEMAP_IMAGES'				=> $config['lotusjeff_sitemap_images'],
 			'LOTUSJEFF_SITEMAP_LOCATION'			=> generate_board_url() . '/app.php/sitemap/sitemap.xml',
 			'S_ERROR'                               => (sizeof($errors)) ? true : false,
 			'ERROR_MSG'                             => implode('<br />', $errors),

@@ -23,6 +23,7 @@ class v_0_1_0 extends \phpbb\db\migration\migration
 	public function update_data()
 	{
 		return array(
+			array('config.add', array('lotusjeff_sitemap_images', 1)),
 			array('config.add', array('lotusjeff_sitemap_sticky_priority', 0.8)),
 			array('config.add', array('lotusjeff_sitemap_announce_priority', 0.8)),
 			array('config.add', array('lotusjeff_sitemap_global_priority', 0.8)),
