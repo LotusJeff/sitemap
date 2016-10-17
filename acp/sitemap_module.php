@@ -35,7 +35,7 @@ class sitemap_module
 	/** @var string */
 	protected $phpbb_root_path;
 	/** @var string */
-	protected $php_ext;
+	protected $phpbb_extension_manager;	
 	/** @var string */
 	public $u_action;
 
@@ -47,10 +47,10 @@ class sitemap_module
 	 */
 	public function main($id, $mode)
 	{
-		global $user, $phpbb_container;
+		global $user, $phpbb_container, $phpbb_admin_path, $board_url;
 
 		$user->add_lang_ext('lotusjeff/sitemap', 'sitemap_acp');
-
+		
 		switch ($mode)
 		{
 			case 'settings':
@@ -84,7 +84,9 @@ class sitemap_module
 			$commit_to_db = true;
 			$msg = array();
 
-			//perform validation checks
+			/**
+			 * Perform validation checks
+			 */
 			$lotusjeff_sitemap_announce_priority = number_format($request->variable('lotusjeff_sitemap_announce_priority', 0.8),1);
 			if (!preg_match('/^((\.[0-9]{1})|(0\.[0-9]{1})|(1\.0)|(1))$/i',$lotusjeff_sitemap_announce_priority) && !empty($lotusjeff_sitemap_announce_priority))
 			{
@@ -109,7 +111,10 @@ class sitemap_module
 				$commit_to_db = false;
 				$errors[] = $user->lang('LOTUSJEFF_SITEMAP_INVALID_THRESHOLD_VALUE');
 			}
-			print_r($request->variable('lotusjeff_sitemap_forum_exclude', array(0)));
+
+			/**
+			 * Validation passed, commit to config and return saved message
+			 */
 			if ($commit_to_db)
 			{
 				$config->set('lotusjeff_sitemap_announce_priority', $lotusjeff_sitemap_announce_priority);
@@ -128,7 +133,9 @@ class sitemap_module
 
 		}
 
-		// Determine forums currently excluded from sitemaps
+		/**
+		 * Build forum exclude selection box
+		 */
 		$forum_link = make_forum_select(false, false, true, true, true, false, true);
 		foreach ($forum_link as $link)
 		{
@@ -146,6 +153,7 @@ class sitemap_module
 			'LOTUSJEFF_SITEMAP_GLOBAL_PRIORITY'		=> $config['lotusjeff_sitemap_global_priority'],
 			'LOTUSJEFF_SITEMAP_FORUM_THRESHOLD'		=> $config['lotusjeff_sitemap_forum_threshold'],
 			'LOTUSJEFF_SITEMAP_LINK'				=> $config['lotusjeff_sitemap_link'],
+			'LOTUSJEFF_SITEMAP_LOCATION'			=> generate_board_url() . '/app.php/sitemap/sitemap.xml',
 			'S_ERROR'                               => (sizeof($errors)) ? true : false,
 			'ERROR_MSG'                             => implode('<br />', $errors),
 			'U_ACTION'                     			=> $this->u_action,

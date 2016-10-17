@@ -39,4 +39,6 @@ $lang = array_merge($lang, array(
 	'LOTUSJEFF_SITEMAP_INVALID_PRIORITY_VALUE'	=> 'Priority Value must be between 0.0 and 1.0.',
 	'LOTUSJEFF_SITEMAP_INVALID_THRESHOLD_VALUE'	=> 'Threshold Value must be a number.',
 	'LOTUSJEFF_SITEMAP_SETTINGS_SAVED'		=> 'Settings Saved',
+	'LOTUSJEFF_SITEMAP_EXPLAIN'		=> 'Settings Saved',
+	'LOTUSJEFF_SITEMAP_LOCATION'		=> 'Sitemap Index',
 ));
