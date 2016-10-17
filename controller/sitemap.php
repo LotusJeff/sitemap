@@ -213,7 +213,7 @@ class sitemap
 						 * Get all posts ids:
 						 * - within the topic
 						 * - post is visible
-						 */						
+						 */
 						$sql = 'SELECT post_id
 							FROM ' . POSTS_TABLE . '
 							WHERE topic_id = ' . $topic_row['topic_id'] . ' and post_visibility = 1';
@@ -227,9 +227,9 @@ class sitemap
 
 						/**
 						 * Determine what image goes with which page
-						 */	
+						 */
 						$page_count = 1;
-						foreach($post_id_by_page as $post_page_data) 
+						foreach ($post_id_by_page as $post_page_data)
 						{
 							if (in_array($image_row['post_msg_id'], $post_page_data))
 							{
@@ -247,7 +247,7 @@ class sitemap
 						$topic_image_data[$topic_row['topic_id']][$pages][] = array(
 							'attach_url'	=> $this->board_url .  '/download/file.' . $this->php_ext . '?id=' . $image_row['attach_id'] . '&amp;mode=view',
 							'caption'	=> $image_row['attach_comment'],
-						);						
+						);
 					}
 				}
 			}
@@ -361,10 +361,10 @@ class sitemap
 
 				/**
 				 * Add image data if turned on
-				 */				
+				 */
 				if (($this->config['lotusjeff_sitemap_images']) && (is_array($data['image'])))
 				{
-					foreach($data['image'] as $xml_image_data)
+					foreach ($data['image'] as $xml_image_data)
 					{
 						$xml .= '		<image:image>' .  "\n";
 						$xml .= '			<image:loc>' . $xml_image_data['attach_url'] . '</image:loc>' .  "\n";
@@ -372,7 +372,7 @@ class sitemap
 						$xml .= '		</image:image>' .  "\n";
 					}
 				}
- 				$xml .= '	</url>' . "\n";
+				$xml .= '	</url>' . "\n";
 			}
 		}
 		$xml .= '</' . $type . '>';

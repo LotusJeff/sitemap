@@ -35,7 +35,7 @@ class sitemap_module
 	/** @var string */
 	protected $phpbb_root_path;
 	/** @var string */
-	protected $phpbb_extension_manager;	
+	protected $phpbb_extension_manager;
 	/** @var string */
 	public $u_action;
 
@@ -50,7 +50,7 @@ class sitemap_module
 		global $user, $phpbb_container, $phpbb_admin_path, $board_url;
 
 		$user->add_lang_ext('lotusjeff/sitemap', 'sitemap_acp');
-		
+
 		switch ($mode)
 		{
 			case 'settings':
