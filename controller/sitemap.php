@@ -73,14 +73,18 @@ class sitemap
 		$result = $this->db->sql_query($sql);
 
 		/**
-		 * Obtain forum data
+		 * We create two indexes per forum for performance issues. One is only the forum summary pages. The other is the topic pages
 		 */
 		while ($row = $this->db->sql_fetchrow($result))
 		{
 			if (($this->auth->acl_get('f_list', $row['forum_id'])) && (!in_array($row['forum_id'],unserialize($this->config['lotusjeff_sitemap_forum_exclude']))) && ($row['forum_topics_approved'] > $this->config['lotusjeff_sitemap_forum_threshold']))
 			{
 				$url_data[] = array(
-					'url'		=> $this->helper->route('lotusjeff_sitemap_sitemap', array('id' => $row['forum_id']), true, '', \Symfony\Component\Routing\Generator\UrlGeneratorInterface::ABSOLUTE_URL),
+					'url'		=> $this->helper->route('lotusjeff_sitemap_sitemapposts', array('id' => $row['forum_id']), true, '', \Symfony\Component\Routing\Generator\UrlGeneratorInterface::ABSOLUTE_URL),
+					'time'		=> $row['forum_last_post_time'],
+				);
+				$url_data[] = array(
+					'url'		=> $this->helper->route('lotusjeff_sitemap_sitemapforums', array('id' => $row['forum_id']), true, '', \Symfony\Component\Routing\Generator\UrlGeneratorInterface::ABSOLUTE_URL),
 					'time'		=> $row['forum_last_post_time'],
 				);
 			}
@@ -97,13 +101,13 @@ class sitemap
 	}
 
 	/**
-	 * Creates Sitemap for individual allowed forums
+	 * Creates Sitemap for forum summary pages only
 	 *
 	 * @param int		$id		The forum ID
 	 * @return object
 	 * @access public
 	 */
-	public function sitemap($id)
+	public function sitemapforums($id)
 	{
 
 		/**
@@ -173,6 +177,40 @@ class sitemap
 			}
 		}
 
+		if (empty($url_data))
+		{
+			trigger_error('LOTUSJEFF_SITEMAP_NODATA');
+		}
+
+		return $this->output_sitemap($url_data, $type = 'urlset');
+	}
+
+	/**
+	 * Creates Sitemap for individual allowed forums
+	 *
+	 * @param int		$id		The forum ID
+	 * @return object
+	 * @access public
+	 */
+	public function sitemapposts($id)
+	{
+
+		/**
+		 * Check if the forum can be accessed via permissions.
+		 */
+		if (!$this->auth->acl_get('f_list', $id))
+		{
+			trigger_error('SORRY_AUTH_READ');
+		}
+
+		/**
+		 * Check if the forum has been excluded
+		 */
+		if (in_array($id,unserialize($this->config['lotusjeff_sitemap_forum_exclude'])))
+		{
+			trigger_error('SORRY_AUTH_READ');
+		}
+
 		/**
 		 * Get all the forum topics.  topics must be:
 		 *   - Topic has at least one approved post
@@ -197,6 +235,26 @@ class sitemap
 			 */
 			if (($topic_row['topic_attachment']) && ($this->config['lotusjeff_sitemap_images']))
 			{
+
+				if ( $pages > 1 )
+				{
+					/**
+					 * Get all posts ids:
+					 * - within the topic
+					 * - post is visible
+					 */
+					$sql = 'SELECT post_id
+						FROM ' . POSTS_TABLE . '
+						WHERE topic_id = ' . $topic_row['topic_id'] . ' and post_visibility = 1';
+					$post_result = $this->db->sql_query($sql);
+
+					while ($post_row = $this->db->sql_fetchrow($post_result))
+					{
+						$post_data[] = $post_row['post_id'];
+					}
+					$post_id_by_page = array_chunk($post_data, $this->config['posts_per_page']);
+				}
+
 				$sql = 'SELECT attach_id, attach_comment, post_msg_id
 					FROM ' . ATTACHMENTS_TABLE . '
 					WHERE topic_id = ' . $topic_row['topic_id'] . ' and is_orphan = 0 and mimetype like "%image%"';
@@ -209,22 +267,6 @@ class sitemap
 				{
 					if ( $pages > 1 )
 					{
-						/**
-						 * Get all posts ids:
-						 * - within the topic
-						 * - post is visible
-						 */
-						$sql = 'SELECT post_id
-							FROM ' . POSTS_TABLE . '
-							WHERE topic_id = ' . $topic_row['topic_id'] . ' and post_visibility = 1';
-						$post_result = $this->db->sql_query($sql);
-
-						while ($post_row = $this->db->sql_fetchrow($post_result))
-						{
-							$post_data[] = $post_row['post_id'];
-						}
-						$post_id_by_page = array_chunk($post_data, $this->config['posts_per_page']);
-
 						/**
 						 * Determine what image goes with which page
 						 */
@@ -240,7 +282,6 @@ class sitemap
 							}
 							$page_count++;
 						}
-
 					}
 					else
 					{
