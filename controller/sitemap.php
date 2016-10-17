@@ -217,7 +217,7 @@ class sitemap
 		 */
 		$sql = 'SELECT topic_id, topic_last_post_time, topic_status, topic_posts_approved, topic_type, topic_attachment
 			FROM ' . TOPICS_TABLE . '
-			WHERE forum_id = ' . (int) $id . ' and topic_posts_approved > 0';
+			WHERE forum_id = ' . (int) $id . ' and topic_posts_approved > 0 ORDER BY topic_last_post_time DESC';
 		$result = $this->db->sql_query($sql);
 
 		while ($topic_row = $this->db->sql_fetchrow($result))
@@ -349,7 +349,6 @@ class sitemap
 			}
 		}
 
-//print_r($url_data);
 		/**
 		 * If there are no available data, we need to send an error message of no data configured.
 		 */
