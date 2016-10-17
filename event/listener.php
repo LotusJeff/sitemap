@@ -66,7 +66,7 @@ class listener implements EventSubscriberInterface
 		if ($this->config['lotusjeff_sitemap_link'])
 		{
 			$this->user->add_lang_ext('lotusjeff/sitemap', 'common');
-			$sitemap_url = generate_board_url()."/app.php/lotusjeff-sitemap/sitemap.xml";
+			$sitemap_url = generate_board_url()."/app.php/sitemap/sitemap.xml";
 			$this->template->assign_var('S_LOTUSJEFF_SITEMAP_LINK',$this->config['lotusjeff_sitemap_link']);
 			$this->template->assign_var('LOTUSJEFF_SITEMAP_URL',$sitemap_url);
 		}
