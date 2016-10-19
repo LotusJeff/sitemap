@@ -66,6 +66,10 @@ class sitemap
 	 */
 	public function index()
 	{
+
+		/**
+		 * Get forum data
+		 */
 		$sql = 'SELECT forum_id, forum_name, forum_last_post_time, forum_topics_approved
 			FROM ' . FORUMS_TABLE . '
 			WHERE forum_type = ' . (int) FORUM_POST . '
@@ -73,7 +77,7 @@ class sitemap
 		$result = $this->db->sql_query($sql);
 
 		/**
-		 * We create two indexes per forum for performance issues. One is only the forum summary pages. The other is the topic pages
+		 * Write forum data. Two indexes per forum are written for performance issues. A forum viewforum pages sitemap and a forum topic sitemap.
 		 */
 		while ($row = $this->db->sql_fetchrow($result))
 		{
@@ -89,6 +93,7 @@ class sitemap
 				);
 			}
 		}
+		$this->db->sql_freeresult($result);
 
 		/**
 		 * If there are no available data, we need to send an error message of no data configured.
@@ -101,7 +106,7 @@ class sitemap
 	}
 
 	/**
-	 * Creates Sitemap for forum summary pages only
+	 * Creates Sitemap for forum viewforum pages
 	 *
 	 * @param int		$id		The forum ID
 	 * @return object
@@ -144,22 +149,24 @@ class sitemap
 		}
 
 		/**
-		 * Create forum priority levels
+		 * Create forum priority and frequency values
 		 */
 		$pages = ceil($row['forum_topics_approved'] / $this->config['topics_per_page']);
 		$forum_prio = $this->get_prio($row['forum_last_post_time'],$pages);
+		$forum_freq = $this->get_freq($row['forum_last_post_time']);
+
 		/**
-		 * Create forum url data
+		 * Write forum url data
 		 */
 		$url_data[] = array(
 			'url'	=> $this->board_url . '/viewforum.' . $this->php_ext . '?f=' . $id,
 			'time'	=> $row['forum_last_post_time'],
 			'prio'	=> number_format($forum_prio,1),
-			'freq'	=> $this->get_freq($row['forum_last_post_time']),
+			'freq'	=> $forum_freq,
 			'image'	=> '',
 		);
 		/**
-		 * Url data for multi-page forums
+		 * Write forum url data for multi-page forums
 		 */
 		if ($pages > 1)
 		{
@@ -171,12 +178,16 @@ class sitemap
 					'url'	=> $this->board_url . '/viewforum.' . $this->php_ext . '?f=' . $id . '&amp;start=' . $start,
 					'time'	=> $row['forum_last_post_time'],
 					'prio'	=> number_format(($forum_prio*0.95),1),
-					'freq'	=> $this->get_freq($row['forum_last_post_time']),
+					'freq'	=> $forum_freq,
 					'image'	=> '',
 				);
 			}
 		}
+		$this->db->sql_freeresult($result);
 
+		/**
+		 * If there are no available data, we need to send an error message of no data configured.
+		 */		
 		if (empty($url_data))
 		{
 			trigger_error('LOTUSJEFF_SITEMAP_NODATA');
@@ -186,7 +197,7 @@ class sitemap
 	}
 
 	/**
-	 * Creates Sitemap for individual allowed forums
+	 * Creates Sitemap for forum topics.
 	 *
 	 * @param int		$id		The forum ID
 	 * @return object
@@ -252,6 +263,7 @@ class sitemap
 					{
 						$post_data[] = $post_row['post_id'];
 					}
+					$this->db->sql_freeresult($post_result);
 					$post_id_by_page = array_chunk($post_data, $this->config['posts_per_page']);
 				}
 
@@ -291,6 +303,8 @@ class sitemap
 						);
 					}
 				}
+
+				$this->db->sql_freeresult($image_result);
 			}
 			else
 			{
@@ -314,9 +328,13 @@ class sitemap
 				default:
 					$topic_priority = $this->get_prio($topic_row['topic_last_post_time'], $pages);
 			}
+			/**
+			 * Set the frequency of the topic
+			 */
+			$topic_freq = $this->get_freq($topic_row['topic_last_post_time']);
 
 			/**
-			 * Set topic data for first page of topic
+			 * Write topic data for first page of topic
 			 */
 			if ($topic_row['topic_status'] <> ITEM_MOVED)
 			{
@@ -324,12 +342,12 @@ class sitemap
 					'url'	=> $this->board_url .  '/viewtopic.' . $this->php_ext . '?f=' . $id . '&amp;t=' . $topic_row['topic_id'],
 					'time'	=> $topic_row['topic_last_post_time'],
 					'prio'	=> number_format($topic_priority,1),
-					'freq'	=> $this->get_freq($topic_row['topic_last_post_time']),
+					'freq'	=> $topic_freq,
 					'image'	=> ($this->config['lotusjeff_sitemap_images']) ? $this->image_exist($topic_row['topic_id'], $topic_image_data) : '',
 				);
 
 				/**
-				 * Set topic data for pages past 1
+				 * Write topic data for multi-page topics
 				 */
 				if ( $pages > 1 )
 				{
@@ -341,14 +359,15 @@ class sitemap
 							'url'	=> $this->board_url . '/viewtopic.' . $this->php_ext . '?f=' . $id . '&amp;t=' . $topic_row['topic_id'] . '&amp;start=' . $start,
 							'time'	=> $topic_row['topic_last_post_time'],
 							'prio'	=> number_format(($topic_priority*0.95),1),
-							'freq'	=> $this->get_freq($topic_row['topic_last_post_time']),
+							'freq'	=> $topic_freq,
 							'image'	=> ($this->config['lotusjeff_sitemap_images']) ? $this->image_exist($topic_row['topic_id'], $topic_image_data, $pages, $i) : '',
 						);
 					}
 				}
 			}
 		}
-
+		$this->db->sql_freeresult($result);
+		
 		/**
 		 * If there are no available data, we need to send an error message of no data configured.
 		 */
@@ -455,11 +474,12 @@ class sitemap
 	}
 
 	/**
-	* get_priority() computes the priority, bases on last mod time and page number
-	* Freshest items with most pages gets the highest priority
-	* 42 is the answer to the most important question in the universe ;-) From USU and phpBBSEO 3.0.x mod
-	 * @param string	$lastmodtime
-	 * @param string	number of pages within listing
+	* image_exists() determines which images go with which page. 
+	* A single page topic is easy. It is the multi-page topics that are fun to compute.
+	 * @param string   current topic id
+	 * @param array    Multidimensional array of images to page number
+	 * @param string   Number of pages within the topic
+	 * @param string   Current step in page itteration
 	 * @return priority value
 	 * @access private
 	*/
