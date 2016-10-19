@@ -51,5 +51,5 @@ $lang = array_merge($lang, array(
 	'LOTUSJEFF_SITEMAP_ADDITIONALS'		=> 'Extend this Extension',
 	'LOTUSJEFF_SITEMAP_ADDITIONAL'		=> 'Additional Sitemap',
 	'LOTUSJEFF_SITEMAP_ADDITIONAL_EXPLAIN'		=> 'This sitemap should only be turned on if you have another extension sending data via this extension.',
-	'LOTUSJEFF_SITEMAP_NODATA'	=> 'Forum has no data.',	
+	'LOTUSJEFF_SITEMAP_NODATA'	=> 'Forum has no data.',
 ));

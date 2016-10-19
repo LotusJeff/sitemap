@@ -23,7 +23,7 @@ class sitemap
 	protected $db;
 
 	/** @var \phpbb\cache\service */
-	protected $cache;	
+	protected $cache;
 
 	protected $phpEx;
 
@@ -116,7 +116,7 @@ class sitemap
 			$url_data[] = array(
 				'url'		=> $this->helper->route('lotusjeff_sitemap_additional', array('id' => $row['forum_id']), true, '', \Symfony\Component\Routing\Generator\UrlGeneratorInterface::ABSOLUTE_URL),
 				'time'		=> time(),
-			);			
+			);
 		}
 
 		/**
@@ -149,7 +149,7 @@ class sitemap
 
 		while ($topic_row = $this->db->sql_fetchrow($result))
 		{
-			
+
 			/**
 			 * Check if the topic is in a forum that can be accessed via permissions.
 			 */
@@ -165,7 +165,6 @@ class sitemap
 			{
 				continue;
 			}
-
 
 			/**
 			 * Determines if topic is multi-page
@@ -413,7 +412,7 @@ class sitemap
 
 			$this->cache->put($cache_file, $output, (int) $config_time_cache);
 
-		}	
+		}
 
 		return $output;
 	}
@@ -626,7 +625,6 @@ class sitemap
 		/**
 		 * Build extension hook
 		 */
-
 
 		/**
 		 * If there are no available data, we need to send an error message of no data configured.
