@@ -22,6 +22,9 @@ class sitemap
 	/** @var \phpbb\db\driver\driver */
 	protected $db;
 
+	/** @var \phpbb\cache\service */
+	protected $cache;	
+
 	protected $phpEx;
 
 	/** @var \phpbb\controller\helper */
@@ -40,15 +43,17 @@ class sitemap
 	* Constructor
 	*
 	* @param \phpbb\auth\auth						$auth					Auth object
+	* @param \phpbb\cache\service		$cache
 	* @param \phpbb\config\config					$config					Config object
 	* @param \phpbb\db\driver\driver_interface		$db						Database object
 	* @param \phpbb\controller\helper				$helper					Helper object
 	* @param string									$php_ext				phpEx
 	* @param \phpbb_extension_manager				$phpbb_extension_manager    phpbb_extension_manager
 	*/
-	public function __construct(\phpbb\auth\auth $auth, \phpbb\config\config $config, \phpbb\db\driver\driver_interface $db, \phpbb\controller\helper $helper, \phpbb\event\dispatcher_interface $phpbb_dispatcher, $php_ext, $phpbb_extension_manager)
+	public function __construct(\phpbb\auth\auth $auth, \phpbb\cache\service $cache, \phpbb\config\config $config, \phpbb\db\driver\driver_interface $db, \phpbb\controller\helper $helper, \phpbb\event\dispatcher_interface $phpbb_dispatcher, $php_ext, $phpbb_extension_manager)
 	{
 		$this->auth = $auth;
+		$this->cache = $cache;
 		$this->config = $config;
 		$this->db = $db;
 		$this->helper = $helper;
@@ -68,12 +73,20 @@ class sitemap
 	{
 
 		/**
+		 * Set sitemap for current topics < 30 days last modified
+		 */
+		$url_data[] = array(
+			'url'		=> $this->helper->route('lotusjeff_sitemap_current', array(), true, '', \Symfony\Component\Routing\Generator\UrlGeneratorInterface::ABSOLUTE_URL),
+			'time'		=> time(),
+		);
+
+		/**
 		 * Get forum data
 		 */
 		$sql = 'SELECT forum_id, forum_name, forum_last_post_time, forum_topics_approved
 			FROM ' . FORUMS_TABLE . '
 			WHERE forum_type = ' . (int) FORUM_POST . '
-			ORDER BY left_id ASC';
+			ORDER BY forum_last_post_time DESC';
 		$result = $this->db->sql_query($sql);
 
 		/**
@@ -84,16 +97,27 @@ class sitemap
 			if (($this->auth->acl_get('f_list', $row['forum_id'])) && (!in_array($row['forum_id'],unserialize($this->config['lotusjeff_sitemap_forum_exclude']))) && ($row['forum_topics_approved'] > $this->config['lotusjeff_sitemap_forum_threshold']))
 			{
 				$url_data[] = array(
-					'url'		=> $this->helper->route('lotusjeff_sitemap_sitemapposts', array('id' => $row['forum_id']), true, '', \Symfony\Component\Routing\Generator\UrlGeneratorInterface::ABSOLUTE_URL),
+					'url'		=> $this->helper->route('lotusjeff_sitemap_forums', array('id' => $row['forum_id']), true, '', \Symfony\Component\Routing\Generator\UrlGeneratorInterface::ABSOLUTE_URL),
 					'time'		=> $row['forum_last_post_time'],
 				);
 				$url_data[] = array(
-					'url'		=> $this->helper->route('lotusjeff_sitemap_sitemapforums', array('id' => $row['forum_id']), true, '', \Symfony\Component\Routing\Generator\UrlGeneratorInterface::ABSOLUTE_URL),
+					'url'		=> $this->helper->route('lotusjeff_sitemap_topics', array('id' => $row['forum_id']), true, '', \Symfony\Component\Routing\Generator\UrlGeneratorInterface::ABSOLUTE_URL),
 					'time'		=> $row['forum_last_post_time'],
 				);
 			}
 		}
 		$this->db->sql_freeresult($result);
+
+		/**
+		 * Set sitemap for additional pages if configured
+		 */
+		if ($this->config['lotusjeff_sitemap_additional'])
+		{
+			$url_data[] = array(
+				'url'		=> $this->helper->route('lotusjeff_sitemap_additional', array('id' => $row['forum_id']), true, '', \Symfony\Component\Routing\Generator\UrlGeneratorInterface::ABSOLUTE_URL),
+				'time'		=> time(),
+			);			
+		}
 
 		/**
 		 * If there are no available data, we need to send an error message of no data configured.
@@ -106,133 +130,43 @@ class sitemap
 	}
 
 	/**
-	 * Creates Sitemap for forum viewforum pages
+	 * Creates Sitemap off all current topics less than 30 days from last modified
 	 *
-	 * @param int		$id		The forum ID
 	 * @return object
 	 * @access public
 	 */
-	public function sitemapforums($id)
+	public function current()
 	{
 
 		/**
-		 * Check if the forum can be accessed via permissions.
-		 */
-		if (!$this->auth->acl_get('f_list', $id))
-		{
-			trigger_error('SORRY_AUTH_READ');
-		}
-
-		/**
-		 * Check if the forum has been excluded
-		 */
-		if (in_array($id,unserialize($this->config['lotusjeff_sitemap_forum_exclude'])))
-		{
-			trigger_error('SORRY_AUTH_READ');
-		}
-
-		/**
-		 * Get forum data
-		 */
-		$sql = 'SELECT forum_id, forum_last_post_time, forum_topics_approved
-			FROM ' . FORUMS_TABLE . '
-			WHERE forum_id = ' . (int) $id;
-		$result = $this->db->sql_query($sql);
-		$row = $this->db->sql_fetchrow($result);
-
-		/**
-		 * Check if the forum meets forum threshold
-		 */
-		if ($row['forum_topics_approved'] < $this->config['lotusjeff_sitemap_forum_threshold'])
-		{
-			trigger_error('LOTUSJEFF_SITEMAP_NODATA');
-		}
-
-		/**
-		 * Create forum priority and frequency values
-		 */
-		$pages = ceil($row['forum_topics_approved'] / $this->config['topics_per_page']);
-		$forum_prio = $this->get_prio($row['forum_last_post_time'],$pages);
-		$forum_freq = $this->get_freq($row['forum_last_post_time']);
-
-		/**
-		 * Write forum url data
-		 */
-		$url_data[] = array(
-			'url'	=> $this->board_url . '/viewforum.' . $this->php_ext . '?f=' . $id,
-			'time'	=> $row['forum_last_post_time'],
-			'prio'	=> number_format($forum_prio,1),
-			'freq'	=> $forum_freq,
-			'image'	=> '',
-		);
-		/**
-		 * Write forum url data for multi-page forums
-		 */
-		if ($pages > 1)
-		{
-			$start = 0;
-			for ($i = 1; $i < $pages; $i++)
-			{
-				$start = $start + $this->config['topics_per_page'];
-				$url_data[] = array(
-					'url'	=> $this->board_url . '/viewforum.' . $this->php_ext . '?f=' . $id . '&amp;start=' . $start,
-					'time'	=> $row['forum_last_post_time'],
-					'prio'	=> number_format(($forum_prio*0.95),1),
-					'freq'	=> $forum_freq,
-					'image'	=> '',
-				);
-			}
-		}
-		$this->db->sql_freeresult($result);
-
-		/**
-		 * If there are no available data, we need to send an error message of no data configured.
-		 */
-		if (empty($url_data))
-		{
-			trigger_error('LOTUSJEFF_SITEMAP_NODATA');
-		}
-
-		return $this->output_sitemap($url_data, $type = 'urlset');
-	}
-
-	/**
-	 * Creates Sitemap for forum topics.
-	 *
-	 * @param int		$id		The forum ID
-	 * @return object
-	 * @access public
-	 */
-	public function sitemapposts($id)
-	{
-
-		/**
-		 * Check if the forum can be accessed via permissions.
-		 */
-		if (!$this->auth->acl_get('f_list', $id))
-		{
-			trigger_error('SORRY_AUTH_READ');
-		}
-
-		/**
-		 * Check if the forum has been excluded
-		 */
-		if (in_array($id,unserialize($this->config['lotusjeff_sitemap_forum_exclude'])))
-		{
-			trigger_error('SORRY_AUTH_READ');
-		}
-
-		/**
-		 * Get all the forum topics.  topics must be:
+		 * Get all the topics with a last modified data of < 30 days:
 		 *   - Topic has at least one approved post
 		 */
-		$sql = 'SELECT topic_id, topic_last_post_time, topic_status, topic_posts_approved, topic_type, topic_attachment
+		$sql = 'SELECT topic_id, forum_id, topic_last_post_time, topic_status, topic_posts_approved, topic_type, topic_attachment
 			FROM ' . TOPICS_TABLE . '
-			WHERE forum_id = ' . (int) $id . ' and topic_posts_approved > 0 ORDER BY topic_last_post_time DESC';
+			WHERE topic_last_post_time > ' . strtotime("-30 day") . ' and topic_posts_approved > 0 ORDER BY topic_last_post_time DESC';
 		$result = $this->db->sql_query($sql);
 
 		while ($topic_row = $this->db->sql_fetchrow($result))
 		{
+			
+			/**
+			 * Check if the topic is in a forum that can be accessed via permissions.
+			 */
+			if (!$this->auth->acl_get('f_list' , $topic_row['forum_id']))
+			{
+				continue;
+			}
+
+			/**
+			 * Check if the topic belongs to a forum that has been excluded
+			 */
+			if (in_array($topic_row['forum_id'] , unserialize($this->config['lotusjeff_sitemap_forum_exclude'])))
+			{
+				continue;
+			}
+
+
 			/**
 			 * Determines if topic is multi-page
 			 */
@@ -339,7 +273,7 @@ class sitemap
 			if ($topic_row['topic_status'] <> ITEM_MOVED)
 			{
 				$url_data[] = array(
-					'url'	=> $this->board_url .  '/viewtopic.' . $this->php_ext . '?f=' . $id . '&amp;t=' . $topic_row['topic_id'],
+					'url'	=> $this->board_url .  '/viewtopic.' . $this->php_ext . '?f=' . $topic_row['forum_id'] . '&amp;t=' . $topic_row['topic_id'],
 					'time'	=> $topic_row['topic_last_post_time'],
 					'prio'	=> number_format($topic_priority,1),
 					'freq'	=> $topic_freq,
@@ -356,7 +290,7 @@ class sitemap
 					{
 						$start = $start + $this->config['posts_per_page'];
 						$url_data[] = array(
-							'url'	=> $this->board_url . '/viewtopic.' . $this->php_ext . '?f=' . $id . '&amp;t=' . $topic_row['topic_id'] . '&amp;start=' . $start,
+							'url'	=> $this->board_url . '/viewtopic.' . $this->php_ext . '?f=' . $topic_row['forum_id'] . '&amp;t=' . $topic_row['topic_id'] . '&amp;start=' . $start,
 							'time'	=> $topic_row['topic_last_post_time'],
 							'prio'	=> number_format(($topic_priority*0.95),1),
 							'freq'	=> $topic_freq,
@@ -376,6 +310,331 @@ class sitemap
 			trigger_error('LOTUSJEFF_SITEMAP_NODATA');
 		}
 
+		return $this->output_sitemap($url_data, $type = 'urlset');
+
+	}
+
+	/**
+	 * Creates Sitemap for forum viewforum pages
+	 *
+	 * @param int		$id		The forum ID
+	 * @return object
+	 * @access public
+	 */
+	public function forums($id)
+	{
+
+		/**
+		 * Check cache data
+		 */
+		$cache_file = "_lotusjeff_forum_".$id;
+		$config_time_cache = (int) (24 * 60 * 60);
+		if (($output = $this->cache->get($cache_file)) === false)
+		{
+			/**
+			 * Check if the forum can be accessed via permissions.
+			 */
+			if (!$this->auth->acl_get('f_list', $id))
+			{
+				trigger_error('SORRY_AUTH_READ');
+			}
+
+			/**
+			 * Check if the forum has been excluded
+			 */
+			if (in_array($id,unserialize($this->config['lotusjeff_sitemap_forum_exclude'])))
+			{
+				trigger_error('SORRY_AUTH_READ');
+			}
+
+			/**
+			 * Get forum data
+			 */
+			$sql = 'SELECT forum_id, forum_last_post_time, forum_topics_approved
+				FROM ' . FORUMS_TABLE . '
+				WHERE forum_id = ' . (int) $id;
+			$result = $this->db->sql_query($sql);
+			$row = $this->db->sql_fetchrow($result);
+
+			/**
+			 * Check if the forum meets forum threshold
+			 */
+			if ($row['forum_topics_approved'] < $this->config['lotusjeff_sitemap_forum_threshold'])
+			{
+				trigger_error('LOTUSJEFF_SITEMAP_NODATA');
+			}
+
+			/**
+			 * Create forum priority and frequency values
+			 */
+			$pages = ceil($row['forum_topics_approved'] / $this->config['topics_per_page']);
+			$forum_prio = $this->get_prio($row['forum_last_post_time'],$pages);
+			$forum_freq = $this->get_freq($row['forum_last_post_time']);
+
+			/**
+			 * Write forum url data
+			 */
+			$url_data[] = array(
+				'url'	=> $this->board_url . '/viewforum.' . $this->php_ext . '?f=' . $id,
+				'time'	=> $row['forum_last_post_time'],
+				'prio'	=> number_format($forum_prio,1),
+				'freq'	=> $forum_freq,
+				'image'	=> '',
+			);
+			/**
+			 * Write forum url data for multi-page forums
+			 */
+			if ($pages > 1)
+			{
+				$start = 0;
+				for ($i = 1; $i < $pages; $i++)
+				{
+					$start = $start + $this->config['topics_per_page'];
+					$url_data[] = array(
+						'url'	=> $this->board_url . '/viewforum.' . $this->php_ext . '?f=' . $id . '&amp;start=' . $start,
+						'time'	=> $row['forum_last_post_time'],
+						'prio'	=> number_format(($forum_prio*0.95),1),
+						'freq'	=> $forum_freq,
+						'image'	=> '',
+					);
+				}
+			}
+			$this->db->sql_freeresult($result);
+
+			/**
+			 * If there are no available data, we need to send an error message of no data configured.
+			 */
+			if (empty($url_data))
+			{
+				trigger_error('LOTUSJEFF_SITEMAP_NODATA');
+			}
+
+			$output = $this->output_sitemap($url_data, $type = 'urlset');
+
+			$this->cache->put($cache_file, $output, (int) $config_time_cache);
+
+		}	
+
+		return $output;
+	}
+
+	/**
+	 * Creates Sitemap for forum topics.
+	 *
+	 * @param int		$id		The forum ID
+	 * @return object
+	 * @access public
+	 */
+	public function topics($id)
+	{
+
+		/**
+		 * Check cache data
+		 */
+		$cache_file = "_lotusjeff_topics".$id;
+		$config_time_cache = (int) (24 * 60 * 60);
+		if (($output = $this->cache->get($cache_file)) === false)
+		{
+			/**
+			 * Check if the forum can be accessed via permissions.
+			 */
+			if (!$this->auth->acl_get('f_list', $id))
+			{
+				trigger_error('SORRY_AUTH_READ');
+			}
+
+			/**
+			 * Check if the forum has been excluded
+			 */
+			if (in_array($id,unserialize($this->config['lotusjeff_sitemap_forum_exclude'])))
+			{
+				trigger_error('SORRY_AUTH_READ');
+			}
+
+			/**
+			 * Get all the forum topics.  topics must be:
+			 *   - Topic has at least one approved post
+			 */
+			$sql = 'SELECT topic_id, topic_last_post_time, topic_status, topic_posts_approved, topic_type, topic_attachment
+				FROM ' . TOPICS_TABLE . '
+				WHERE forum_id = ' . (int) $id . ' AND topic_posts_approved > 0 AND topic_last_post_time < ' . strtotime("-30 day") . ' ORDER BY topic_last_post_time DESC';
+			$result = $this->db->sql_query($sql);
+
+			while ($topic_row = $this->db->sql_fetchrow($result))
+			{
+				/**
+				 * Determines if topic is multi-page
+				 */
+				$pages = ceil($topic_row['topic_posts_approved'] / $this->config['posts_per_page']);
+
+				/**
+				 * If topic has attachments, get image information. Images must be:
+				 * - within the topic
+				 * - an image mime type
+				 * - not an orphan
+				 */
+				if (($topic_row['topic_attachment']) && ($this->config['lotusjeff_sitemap_images']))
+				{
+
+					if ( $pages > 1 )
+					{
+						/**
+						 * Get all posts ids:
+						 * - within the topic
+						 * - post is visible
+						 */
+						$sql = 'SELECT post_id
+							FROM ' . POSTS_TABLE . '
+							WHERE topic_id = ' . $topic_row['topic_id'] . ' and post_visibility = 1';
+						$post_result = $this->db->sql_query($sql);
+
+						while ($post_row = $this->db->sql_fetchrow($post_result))
+						{
+							$post_data[] = $post_row['post_id'];
+						}
+						$this->db->sql_freeresult($post_result);
+						$post_id_by_page = array_chunk($post_data, $this->config['posts_per_page']);
+					}
+
+					$sql = 'SELECT attach_id, attach_comment, post_msg_id
+						FROM ' . ATTACHMENTS_TABLE . '
+						WHERE topic_id = ' . $topic_row['topic_id'] . ' and is_orphan = 0 and mimetype like "%image%"';
+					$image_result = $this->db->sql_query($sql);
+
+					/**
+					 * If the topic is multipage the images must be assigned to the correct page
+					 */
+					while ($image_row = $this->db->sql_fetchrow($image_result))
+					{
+						if ( $pages > 1 )
+						{
+							/**
+							 * Determine what image goes with which page
+							 */
+							$page_count = 1;
+							foreach ($post_id_by_page as $post_page_data)
+							{
+								if (in_array($image_row['post_msg_id'], $post_page_data))
+								{
+									$topic_image_data[$topic_row['topic_id']][$page_count][] = array(
+										'attach_url'	=> $this->board_url .  '/download/file.' . $this->php_ext . '?id=' . $image_row['attach_id'] . '&amp;mode=view',
+										'caption'	=> $image_row['attach_comment'],
+									);
+								}
+								$page_count++;
+							}
+						}
+						else
+						{
+							$topic_image_data[$topic_row['topic_id']][$pages][] = array(
+								'attach_url'	=> $this->board_url .  '/download/file.' . $this->php_ext . '?id=' . $image_row['attach_id'] . '&amp;mode=view',
+								'caption'	=> $image_row['attach_comment'],
+							);
+						}
+					}
+
+					$this->db->sql_freeresult($image_result);
+				}
+				else
+				{
+					$topic_image_data = array();
+				}
+
+				/**
+				 * Set the priority of the topic
+				 */
+				switch ($topic_row['topic_type'])
+				{
+					case POST_STICKY:
+						$topic_priority = $this->config['lotusjeff_sitemap_sticky_priority'];
+						break;
+					case POST_GLOBAL:
+						$topic_priority = $this->config['lotusjeff_sitemap_global_priority'];
+						break;
+					case POST_ANNOUNCE:
+						$topic_priority = $this->config['lotusjeff_sitemap_announce_priority'];
+						break;
+					default:
+						$topic_priority = $this->get_prio($topic_row['topic_last_post_time'], $pages);
+				}
+				/**
+				 * Set the frequency of the topic
+				 */
+				$topic_freq = $this->get_freq($topic_row['topic_last_post_time']);
+
+				/**
+				 * Write topic data for first page of topic
+				 */
+				if ($topic_row['topic_status'] <> ITEM_MOVED)
+				{
+					$url_data[] = array(
+						'url'	=> $this->board_url .  '/viewtopic.' . $this->php_ext . '?f=' . $id . '&amp;t=' . $topic_row['topic_id'],
+						'time'	=> $topic_row['topic_last_post_time'],
+						'prio'	=> number_format($topic_priority,1),
+						'freq'	=> $topic_freq,
+						'image'	=> ($this->config['lotusjeff_sitemap_images']) ? $this->image_exist($topic_row['topic_id'], $topic_image_data) : '',
+					);
+
+					/**
+					 * Write topic data for multi-page topics
+					 */
+					if ( $pages > 1 )
+					{
+						$start = 0;
+						for ($i = 2; $i < $pages+1; $i++)
+						{
+							$start = $start + $this->config['posts_per_page'];
+							$url_data[] = array(
+								'url'	=> $this->board_url . '/viewtopic.' . $this->php_ext . '?f=' . $id . '&amp;t=' . $topic_row['topic_id'] . '&amp;start=' . $start,
+								'time'	=> $topic_row['topic_last_post_time'],
+								'prio'	=> number_format(($topic_priority*0.95),1),
+								'freq'	=> $topic_freq,
+								'image'	=> ($this->config['lotusjeff_sitemap_images']) ? $this->image_exist($topic_row['topic_id'], $topic_image_data, $pages, $i) : '',
+							);
+						}
+					}
+				}
+			}
+			$this->db->sql_freeresult($result);
+
+			/**
+			 * If there are no available data, we need to send an error message of no data configured.
+			 */
+			if (empty($url_data))
+			{
+				trigger_error('LOTUSJEFF_SITEMAP_NODATA');
+			}
+
+			$output = $this->output_sitemap($url_data, $type = 'urlset');
+
+			$this->cache->put($cache_file, $output, (int) $config_time_cache);
+
+		}
+
+		return $output;
+	}
+
+	/**
+	 * Creates Sitemap Index of all allowed forums
+	 *
+	 * @return object
+	 * @access public
+	 */
+	public function additional()
+	{
+
+		/**
+		 * Build extension hook
+		 */
+
+
+		/**
+		 * If there are no available data, we need to send an error message of no data configured.
+		 */
+		if (empty($url_data))
+		{
+			trigger_error('LOTUSJEFF_SITEMAP_NODATA');
+		}
 		return $this->output_sitemap($url_data, $type = 'urlset');
 	}
 

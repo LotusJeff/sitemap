@@ -1,9 +1,15 @@
 lotusjeff_sitemap_sitemapindex:
     pattern: /sitemap/sitemap.xml
     defaults: { _controller: lotusjeff.sitemap.sitemap:index }
-lotusjeff_sitemap_sitemapposts:
-    pattern: /sitemap/sitemap-posts-{id}.xml
-    defaults: { _controller: lotusjeff.sitemap.sitemap:sitemapposts }
-lotusjeff_sitemap_sitemapforums:
-    pattern: /sitemap/sitemap-forums-{id}.xml
-    defaults: { _controller: lotusjeff.sitemap.sitemap:sitemapforums }
+lotusjeff_sitemap_current:
+    pattern: /sitemap/current.xml
+    defaults: { _controller: lotusjeff.sitemap.sitemap:current }
+lotusjeff_sitemap_topics:
+    pattern: /sitemap/topics-{id}.xml
+    defaults: { _controller: lotusjeff.sitemap.sitemap:topics }
+lotusjeff_sitemap_forums:
+    pattern: /sitemap/forums-{id}.xml
+    defaults: { _controller: lotusjeff.sitemap.sitemap:forums }
+lotusjeff_sitemap_additional:
+    pattern: /sitemap/additional.xml
+    defaults: { _controller: lotusjeff.sitemap.sitemap:additional }

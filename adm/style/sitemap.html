@@ -65,6 +65,16 @@
 			</dd>
 		</dl>
 	</fieldset>
+	<fieldset>
+		<legend>{L_LOTUSJEFF_SITEMAP_ADDITIONALS}</legend>
+		<dl>
+			<dt><label for="lotusjeff_sitemap_additional">{L_LOTUSJEFF_SITEMAP_ADDITIONAL}{L_COLON}</label><br /><span>{L_LOTUSJEFF_SITEMAP_ADDITIONAL_EXPLAIN}</span></dt>
+			<dd>
+				<input type="radio" class="radio" name="lotusjeff_sitemap_additional" value="1" <!-- IF LOTUSJEFF_SITEMAP_ADDITIONAL -->checked="checked"<!-- ENDIF -->/> {L_YES} &nbsp;
+				<input type="radio" class="radio" name="lotusjeff_sitemap_additional" value="0" <!-- IF not LOTUSJEFF_SITEMAP_ADDITIONAL -->checked="checked"<!-- ENDIF -->/> {L_NO}
+			</dd>
+		</dl>
+	</fieldset>	
 	<p class="submit-buttons">
 		<input class="button1" type="submit" id="submit" name="submit" value="{L_SUBMIT}" />&nbsp;
 		<input class="button2" type="reset" id="reset" name="reset" value="{L_RESET}" />

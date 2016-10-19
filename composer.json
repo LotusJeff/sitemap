@@ -3,7 +3,7 @@
 	"type": "phpbb-extension",
 	"description": "SEO Sitemap creates the XML sitemap index and listings",
 	"homepage": "https://github.com/LotusJeff/sitemap",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"keywords": ["phpbb", "extension", "seo", "sitemap"],
 	"license": "GPL-2.0",
 	"authors": [

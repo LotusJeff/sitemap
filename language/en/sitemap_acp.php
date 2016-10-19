@@ -39,8 +39,17 @@ $lang = array_merge($lang, array(
 	'LOTUSJEFF_SITEMAP_INVALID_PRIORITY_VALUE'	=> 'Priority Value must be between 0.0 and 1.0.',
 	'LOTUSJEFF_SITEMAP_INVALID_THRESHOLD_VALUE'	=> 'Threshold Value must be a number.',
 	'LOTUSJEFF_SITEMAP_SETTINGS_SAVED'		=> 'Settings Saved',
-	'LOTUSJEFF_SITEMAP_EXPLAIN'		=> 'This extension will create the sitemaps needed to submit to various search engines. The extensions creates one sitemap index file, which is linked below. The index file, lists the sitemap for each allowed forum.',
+	'LOTUSJEFF_SITEMAP_EXPLAIN'		=> 'This extension creates sitemaps needed to submit to various search engines. The extensions balances the need for performace with data by creating multiple sitemaps. '
+										.' These Sitemaps are:<br /><ul><li>sitemap.xml - Sitemap index file. Lists all sitemaps. Never cached, dynamically created.</li>'
+										.'<li>current.xml - Lists all topics modified within the last 30 days. Never cached, dynamically created.</li>'
+										.'<li>topics-{id}.xml - Lists all topics by forum id modified greater than 30 days. Cached for 24 hours.</li>'
+										.'<li>forums-{id}.xml - Lists all summary pages of a forum by forum id. Cached for 24 hours.</li>'
+										.'<li>additional.xml - Ability to extend this extension and add pages to a sitemap. See settings below for instructions</li></ul>',
 	'LOTUSJEFF_SITEMAP_LOCATION'		=> 'Sitemap Index',
 	'LOTUSJEFF_SITEMAP_IMAGES'		=> 'Image Attachments',
 	'LOTUSJEFF_SITEMAP_IMAGES_EXPLAIN'		=> 'Sitemap will include links for image attachements',
+	'LOTUSJEFF_SITEMAP_ADDITIONALS'		=> 'Extend this Extension',
+	'LOTUSJEFF_SITEMAP_ADDITIONAL'		=> 'Additional Sitemap',
+	'LOTUSJEFF_SITEMAP_ADDITIONAL_EXPLAIN'		=> 'This sitemap should only be turned on if you have another extension sending data via this extension.',
+	'LOTUSJEFF_SITEMAP_NODATA'	=> 'Forum has no data.',	
 ));

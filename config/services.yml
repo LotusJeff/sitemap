@@ -3,6 +3,7 @@ services:
         class: lotusjeff\sitemap\controller\sitemap
         arguments:
             - @auth
+            - @cache
             - @config
             - @dbal.conn
             - @controller.helper
