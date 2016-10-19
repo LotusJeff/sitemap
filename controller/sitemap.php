@@ -187,7 +187,7 @@ class sitemap
 
 		/**
 		 * If there are no available data, we need to send an error message of no data configured.
-		 */		
+		 */
 		if (empty($url_data))
 		{
 			trigger_error('LOTUSJEFF_SITEMAP_NODATA');
@@ -367,7 +367,7 @@ class sitemap
 			}
 		}
 		$this->db->sql_freeresult($result);
-		
+
 		/**
 		 * If there are no available data, we need to send an error message of no data configured.
 		 */
@@ -474,7 +474,7 @@ class sitemap
 	}
 
 	/**
-	* image_exists() determines which images go with which page. 
+	* image_exists() determines which images go with which page.
 	* A single page topic is easy. It is the multi-page topics that are fun to compute.
 	 * @param string   current topic id
 	 * @param array    Multidimensional array of images to page number
