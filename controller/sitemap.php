@@ -624,7 +624,46 @@ class sitemap
 
 		/**
 		 * Build extension hook
+		 *
+		 * @event lotusjeff.sitemap_additional_data
+		 * @param array 	additinal_url_data The array below is a sample data of the $url_data. Please mimic the format and delete the sample data. 
+		 * @return Response		 
+		 * @since 0.2.0
 		 */
+		$add_data = array ( 0 => array('loc' => 'http://yourdomian.tld/board_location/viewtopic.php?f=39&amp;t=3245',  //full domain name including the hhtp values
+										'lastmod' => '1456454541', //unix timestamp of when page last updated.
+										'image' => array (0 => array ('attach_url' => 'https://yourdomain.tld/board_location/download/file.php?id=19&amp;mode=view',  //full domain name including the hhtp values
+																		'caption' => 'caption text',  //caption text associated with image
+																		),
+															1 => array ('attach_url' => 'https://yourdomain.tld/board_location/download/file.php?id=19&amp;mode=view',
+																		'caption' => 'caption text',
+																		),
+															),
+										),
+							1 => array('loc' => 'http://yourdomian.tld/board_location/viewtopic.php?f=39&amp;t=3245',
+										'lastmod' => '1456454541',
+										'image' => '',  //if no image pass a '' in the image field.
+										),
+							);
+		$vars = array(
+			'add_data',
+		);
+
+		extract($this->phpbb_dispatcher->trigger_event('lotusjeff.sitemap_additional_data', compact($vars)));
+
+		foreach ($add_data as $add_page)
+		{
+			$prio = $this->get_prio($add_page['lastmod'],1);
+
+			$url_data[] = array(
+				'url'	=> $add_page['loc'],
+				'time'	=> $add_page['lastmod'],
+				'prio'	=> number_format($this->get_prio($add_page['lastmod'],1),1),
+				'freq'	=> $this->get_freq($add_page['lastmod']),
+				'image'	=> ($this->config['lotusjeff_sitemap_images']) ? ((isset($add_page['image'])) ? $add_page['image'] : '') : '',
+				);
+		}
+
 
 		/**
 		 * If there are no available data, we need to send an error message of no data configured.
@@ -646,6 +685,21 @@ class sitemap
 	 */
 	private function output_sitemap($url_data, $type = 'sitemapindex')
 	{
+
+		/**
+		 * Modify sitemap data before output
+		 *
+		 * @event lotusjeff.sitemap_modify_before_output
+		 * @var	string		type			Type of the sitemap (sitemapindex or urlset)
+		 * @var	array		url_data		URL informations
+		 * @since 0.1.4
+		 */
+		$vars = array(
+			'type',
+			'url_data',
+		);
+		extract($this->phpbb_dispatcher->trigger_event('lotusjeff.sitemap_modify_before_output', compact($vars)));
+
 		$style_xsl = $this->board_url . '/'. $this->phpbb_extension_manager->get_extension_path('lotusjeff/sitemap', false) . 'styles/all/template/style.xsl';
 
 		/**
