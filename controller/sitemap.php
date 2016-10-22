@@ -626,8 +626,8 @@ class sitemap
 		 * Build extension hook
 		 *
 		 * @event lotusjeff.sitemap_additional_data
-		 * @param array 	additinal_url_data The array below is a sample data of the $url_data. Please mimic the format and delete the sample data. 
-		 * @return Response		 
+		 * @param array 	additinal_url_data The array below is a sample data of the $url_data. Please mimic the format and delete the sample data.
+		 * @return Response
 		 * @since 0.2.0
 		 */
 		$add_data = array ( 0 => array('loc' => 'http://yourdomian.tld/board_location/viewtopic.php?f=39&amp;t=3245',  //full domain name including the hhtp values
@@ -663,7 +663,6 @@ class sitemap
 				'image'	=> ($this->config['lotusjeff_sitemap_images']) ? ((isset($add_page['image'])) ? $add_page['image'] : '') : '',
 				);
 		}
-
 
 		/**
 		 * If there are no available data, we need to send an error message of no data configured.
