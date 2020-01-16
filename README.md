@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/LotusJeff/sitemap.svg?branch=master)](https://travis-ci.org/LotusJeff/sitemap.svg?branch=master)
 
 # SEO Sitemap Extension for phpBB 3.1
-
+# This is an abandon project. You are welcome to fork it.
 This extension adds xml sitemaps to your phpBB forum. This extension allows you to exclude forums by name or size. It additionally has the ability to add link in the footer for the sitemap.
 
 ## Requirements
